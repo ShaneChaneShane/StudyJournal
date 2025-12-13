@@ -1,4 +1,5 @@
 import { SignOutButton } from "@/components/SignOutButton";
+import { AppColors } from "@/constants/theme";
 import { Image, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -33,7 +34,7 @@ export default function Profile() {
   // getUserDisplayName(user);
   // mock user
   const user = {
-    imageUrl: "https://i.pravatar.cc/300",
+    imageUrl: "https://i.pravatar.cc/111",
     primaryEmailAddress: {
       emailAddress: "john.doe@example.com",
     },
@@ -146,6 +147,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: AppColors.white,
   },
   loadingContainer: {
     flex: 1,

@@ -143,7 +143,12 @@ export default function HomeScreen() {
 
           {/* View Previous Entries Button */}
           <Pressable
-            onPress={() => router.push("/(app)/(tabs)/entries")}
+            onPress={() =>
+              {
+
+                // router.push("/(app)/(tabs)/entries")
+              } 
+            }
             style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
           >
             <Card

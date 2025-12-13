@@ -2,7 +2,7 @@ import CreateEntryButton from "@/components/CreateEntryButton";
 import { AppColors } from "@/constants/theme";
 import { getMoodConfig } from "@/lib/constants/moods";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { router } from "expo-router";
+// import { router } from "expo-router";
 import { type ComponentProps } from "react";
 import {
   ScrollView,
@@ -71,7 +71,7 @@ export default function EntriesScreen() {
   // };
 
   const handleEntryPress = (entryId: string) => {
-    router.push(`/entry/${entryId}`);
+    // router.push(`/entry/${entryId}`);
   };
 
   // if (loading) {
