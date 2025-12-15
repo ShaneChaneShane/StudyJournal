@@ -75,15 +75,15 @@ export default function TabLayout() {
         }}
       />
 
-      {/* <Tabs.Screen
+      <Tabs.Screen
         name="ai-chat"
         options={{
           title: "AI Chat",
           tabBarIcon: ({ color }) => (
-          <IconSymbol size={28} name="graduationcap.fill" color={color} />
+          <IconSymbol size={25} name="bubble.fill" color={color} />
           ),
         }}
-      /> */}
+      />
 
       <Tabs.Screen
         name="profile"

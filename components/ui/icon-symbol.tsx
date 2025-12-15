@@ -22,6 +22,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'flame.fill': 'local-fire-department',
+  'bubble.fill': 'chat-bubble'
 } as IconMapping;
 
 /**
