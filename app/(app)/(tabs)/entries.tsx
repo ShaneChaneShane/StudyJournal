@@ -1,15 +1,11 @@
 import CreateEntryButton from "@/components/CreateEntryButton";
 import { AppColors } from "@/constants/theme";
-import { getMoodConfig } from "@/lib/constants/moods";
+import { getProductivityConfig } from "@/lib/constants/productivity";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 // import { router } from "expo-router";
+import { getSubjectById } from "@/lib/constants/subjects";
 import { type ComponentProps } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity
-} from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "tamagui";
 
@@ -82,68 +78,70 @@ export default function EntriesScreen() {
   //     </View>
   //   );
   // }
+
   type MockEntry = {
-    _id: string
-    createdAt: string
-    mood?: string
+    _id: string;
+    title?: string;
+    createdAt: string;
+    productivity?: string;
+
+    // new: user-chosen subjects (final)
+    subjectIds?: string[];
+
+    // NEW: optional single image stored as array (first one used)
+    images?: { uri: string }[];
+
     content?: {
-      _type: "block"
-      children?: { _type: "span"; text: string }[]
-    }[]
-  }
+      _type: "block";
+      children?: { _type: "span"; text: string }[];
+    }[];
+  };
 
   const entries: MockEntry[] = [
     {
       _id: "entry-1",
       createdAt: "2025-03-10T08:30:00Z",
-      mood: "happy",
+      title: "Today lunch",
+      productivity: "very-focused",
+      subjectIds: ["math", "cs"],
+      images: [{ uri: "https://picsum.photos/200/200" }],
       content: [
-        {
-          _type: "block",
-          children: [{ _type: "span", text: "Hello journal." }],
-        },
+        { _type: "block", children: [{ _type: "span", text: "Hello journal." }] },
       ],
     },
     {
       _id: "entry-2",
       createdAt: "2025-03-10T15:45:00Z",
-      mood: "neutral",
+      productivity: "okay",
+      subjectIds: ["chem"],
       content: [
         {
           _type: "block",
-          children: [
-            {
-              _type: "span",
-              text: "Nothing special happened today, but it was calm.",
-            },
-          ],
+          children: [{ _type: "span", text: "Nothing special happened today." }],
         },
       ],
     },
     {
       _id: "entry-3",
       createdAt: "2025-03-09T22:10:00Z",
-      mood: "sad",
+      productivity: "low",
+      subjectIds: ["physics", "math", "other"],
       content: [
         {
           _type: "block",
-          children: [
-            {
-              _type: "span",
-              text: "Feeling a bit tired and overwhelmed. Hope tomorrow is better.",
-            },
-          ],
+          children: [{ _type: "span", text: "Feeling tired. Tomorrow better." }],
         },
       ],
     },
-  ]
+  ];
+
 
   if (entries.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyTitle}>No Journal Entries Yet</Text>
+        <Text style={styles.emptyTitle}>No Entries Yet</Text>
         <Text style={styles.emptySubtitle}>
-          Tap the + button to write your first journal entry!
+          Tap the + button to write your first study journal entry!
         </Text>
         <CreateEntryButton />
       </View>
@@ -165,48 +163,46 @@ export default function EntriesScreen() {
       [
         {
           _id: "entry-1",
-          createdAt: "2025-03-10T15:45:00Z",
-          mood: "happy",
+          createdAt: "2025-03-10T08:30:00Z",
+          title: "Today's evening",
+          productivity: "very-focused",
+          subjectIds: ["math", "cs"],
+          images: [{ uri: "https://picsum.photos/200/200" }],
           content: [
-            {
-              _type: "block",
-              children: [{ _type: "span", text: "Had a productive day." }],
-            },
+            { _type: "block", children: [{ _type: "span", text: "Hello journal." }] },
           ],
         },
         {
           _id: "entry-2",
-          createdAt: "2025-03-10T08:30:00Z",
-          mood: "neutral",
+          createdAt: "2025-03-10T15:45:00Z",
+          productivity: "okay",
+          subjectIds: ["chem"],
           content: [
             {
               _type: "block",
-              children: [{ _type: "span", text: "Nothing special, felt calm." }],
+              children: [{ _type: "span", text: "Nothing special happened today." }],
             },
           ],
         },
+
       ],
     ],
-    [
-      "2025-03-09",
-      [
+    ["2025-03-09"
+      , [
         {
           _id: "entry-3",
-          createdAt: "2025-03-09T22:10:00Z",
-          mood: "sad",
+          createdAt: "2025-03-09T10:10:00Z",
+          productivity: "low",
+          subjectIds: ["physics", "math", "chem", "other"],
           content: [
             {
               _type: "block",
-              children: [
-                { _type: "span", text: "Feeling tired. Tomorrow will be better." },
-              ],
+              children: [{ _type: "span", text: "Feeling tired. Tomorrow better." }],
             },
           ],
-        },
-      ],
-    ],
-  ]
-
+        }],
+    ]
+  ];
 
   return (
     <View bg="$background" style={styles.container}>
@@ -214,7 +210,7 @@ export default function EntriesScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.contentContainer,
-          { paddingTop: insets.top / 2 },
+          { paddingTop: insets.top },
         ]}
         contentInsetAdjustmentBehavior="automatic"
       // refreshControl={
@@ -226,7 +222,7 @@ export default function EntriesScreen() {
       //   />
       // }
       >
-        <Text style={styles.title}>Your Journal</Text>
+        <Text style={styles.title}>Your Study Journal</Text>
 
         {sortedGroupedEntries.map(([date, dayEntries]) => {
           // Sort entries within the day by createdAt (newest first)
@@ -249,15 +245,46 @@ export default function EntriesScreen() {
               </Text>
 
               {sortedDayEntries.map((entry) => {
-                const moodConfig = getMoodConfig(entry.mood ?? "neutral");
+                const productivityConfig = getProductivityConfig(
+                  entry.productivity ?? "okay"
+                );
+
                 const firstBlock = entry.content?.[0];
                 const preview =
                   (firstBlock && "children" in firstBlock
                     ? firstBlock.children?.[0]?.text?.slice(0, 100)
                     : null) ?? "No content";
+                const thumbnailUri = entry.images?.[0]?.uri ?? null;
+
+                const ids = entry.subjectIds ?? [];
+                const uniqueIds = Array.from(new Set(ids));
+
+                const maxShow = 3;
+                const shown = uniqueIds.slice(0, maxShow);
+                const extraCount = uniqueIds.length - shown.length;
 
                 return (
                   <View key={entry._id} style={styles.entryCardContainer}>
+                    <View style={styles.subjectPillsRow}>
+                      {shown.map((id) => {
+                        const subject = getSubjectById(id);
+                        const title = subject?.title ?? "Unknown";
+                        const color = subject?.color ?? "#6b7280";
+
+                        return (
+                          <View key={id} style={[styles.subjectPill, { backgroundColor: color }]}>
+                            <Text style={styles.subjectPillText}>{title}</Text>
+                          </View>
+                        );
+                      })}
+
+                      {extraCount > 0 && (
+                        <View style={[styles.subjectPill, styles.subjectPillMuted]}>
+                          <Text style={styles.subjectPillTextMuted}>{`+${extraCount}`}</Text>
+                        </View>
+                      )}
+                    </View>
+
                     <TouchableOpacity
                       style={styles.entryCard}
                       onPress={() => handleEntryPress(entry._id)}
@@ -265,55 +292,49 @@ export default function EntriesScreen() {
                       <View style={styles.entryHeader}>
                         <Text style={styles.entryTitle}>
                           {
-                          // entry.title ??
-                            new Date(
-                              entry.createdAt ?? new Date()
-                            ).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            entry.title ??
+                            new Date(entry.createdAt ?? new Date()).toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )
+                          }
                         </Text>
+
                         <View style={styles.entryActions}>
                           <MaterialIcons
                             size={20}
                             name={
-                              moodConfig.icon as ComponentProps<
+                              productivityConfig.icon as ComponentProps<
                                 typeof MaterialIcons
                               >["name"]
                             }
-                            color={moodConfig.color}
+                            color={productivityConfig.color}
                           />
                           <Text
                             style={[
-                              styles.moodLabel,
-                              { color: moodConfig.color },
+                              styles.productivityLabel,
+                              { color: productivityConfig.color },
                             ]}
                           >
-                            {moodConfig.label}
+                            {productivityConfig.label}
                           </Text>
                         </View>
                       </View>
+                      <View style={styles.entryBodyRow}>
 
-                      <Text style={styles.entryPreview}>
-                        {preview}
-                        {preview.length >= 100 ? "..." : ""}
-                      </Text>
-{/* 
-                      {entry.aiGeneratedCategory && (
-                        <View
-                          style={[
-                            styles.categoryTag,
-                            {
-                              backgroundColor:
-                                entry.aiGeneratedCategory.color || "#e1e5e9",
-                            },
-                          ]}
-                        >
-                          <Text style={styles.categoryText}>
-                            {entry.aiGeneratedCategory.title}
-                          </Text>
-                        </View>
-                      )} */}
+                        <Text style={[styles.entryPreview, { flex: 1, marginBottom: 0 }]}>
+                          {preview}
+                          {preview.length >= 100 ? "..." : ""}
+                        </Text>
+
+                        {thumbnailUri && (
+                          <Image source={{ uri: thumbnailUri }} style={styles.entryThumbnail} />
+                        )}
+
+                      </View>
                     </TouchableOpacity>
                   </View>
                 );
@@ -371,7 +392,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   dayGroup: {
-    marginBottom: 24,
+    marginBottom: 15,
   },
   dateHeader: {
     fontSize: 12,
@@ -380,7 +401,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: AppColors.gray200,
+    borderBottomColor: AppColors.gray300,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -392,6 +413,7 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     backgroundColor: "transparent",
+    marginTop: 5,
   },
   entryHeader: {
     flexDirection: "row",
@@ -412,7 +434,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginLeft: 12,
   },
-  moodLabel: {
+  productivityLabel: {
     fontSize: 13,
     fontWeight: "600",
   },
@@ -435,4 +457,51 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  subjectPillsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  subjectPill: {
+    // justifyContent: "center",
+    // alignItems: "center",
+    paddingInline: 10,
+    paddingBottom: 3,
+    paddingTop: 3,
+    borderRadius: 999,
+  },
+
+  subjectPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "white",
+
+  },
+
+  subjectPillMuted: {
+    backgroundColor: "#e5e7eb",
+  },
+
+  subjectPillTextMuted: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#374151",
+  },
+
+  entryBodyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 16,
+  },
+
+  entryThumbnail: {
+    width: 65,
+    height: 65,
+    borderRadius: 12,
+    backgroundColor: AppColors.gray100,
+  },
+
+
 });

@@ -5,8 +5,8 @@
 
 import { Platform } from "react-native";
 
-const tintColorLight = "#904BFF";
-const tintColorDark = "#904BFF";
+const tintColorLight = "#ffdb4b";
+const tintColorDark = "#dc6318";
 
 export const Colors = {
   light: {
@@ -32,9 +32,9 @@ export const Colors = {
  */
 export const AppColors = {
   // Primary brand color
-  primary: "#904BFF",
-  primaryLight: "#7B3FD9",
-  primaryDark: "#6A2ED9",
+  primary: "#FCBA03",
+  primaryLight: "#ecd904",
+  primaryDark: "#ed601a",
 
   // Grays
   gray50: "#f9fafb",
@@ -59,14 +59,14 @@ export const AppColors = {
   info: "#3b82f6",
 
   // Mood colors (matching mood constants)
-  moodVerySad: "#ef4444",
-  moodSad: "#f97316",
-  moodNeutral: "#6b7280",
-  moodHappy: "#22c55e",
-  moodVeryHappy: "#eab308",
+  productivityVeryLow: "#ef4444",
+  productivityLow: "#f97316",
+  productivityOkay: "#6b7280",
+  productivityFocused: "#22c55e",
+  productivityVeryFocused: "#eab308",
 
   // Special colors
-  flameOrange: "#f59e0b",
+  flameRed: "#f2240e",
   trophyGold: "#fbbf24",
 } as const;
 

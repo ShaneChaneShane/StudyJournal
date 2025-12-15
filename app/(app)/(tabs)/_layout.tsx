@@ -1,25 +1,18 @@
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
+import { AppColors, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Tabs, useRouter } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
-import { Card } from "tamagui";
+import { View } from "tamagui";
 
 // Custom plus button component
 function PlusButton() {
   const router = useRouter();
 
   return (
-    <Card
-      bg="$purple9"
-      position="absolute"
-      top={-20}
-      borderColor="$purple9"
-      borderRadius="$10"
-      width={60}
-      height={60}
-      alignSelf="center"
+    <View
+      style={styles.plusButton}
     >
       <Pressable
         onPress={() => router.push("/new-entry")}
@@ -30,7 +23,7 @@ function PlusButton() {
       >
         <IconSymbol size={24} name="plus" color="white" />
       </Pressable>
-    </Card>
+    </View>
   );
 }
 
@@ -81,13 +74,13 @@ export default function TabLayout() {
           tabBarButton: () => <PlusButton />,
         }}
       />
-{/* 
-      <Tabs.Screen
+
+      {/* <Tabs.Screen
         name="ai-chat"
         options={{
           title: "AI Chat",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="heart.fill" color={color} />
+          <IconSymbol size={28} name="graduationcap.fill" color={color} />
           ),
         }}
       /> */}
@@ -100,8 +93,8 @@ export default function TabLayout() {
             <IconSymbol size={28} name="person.fill" color={color} />
           ),
         }}
-      /> 
-     
+      />
+
     </Tabs>
   );
 }
@@ -114,4 +107,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  plusButton: {
+    backgroundColor: AppColors.primary,
+    position: "absolute",
+    top: -25,
+    borderColor: AppColors.primary,
+    borderRadius: 999,
+    width: 60,
+    height: 60,
+    alignSelf: "center",
+  }
 });

@@ -9,7 +9,6 @@ import {
   ScrollView,
   Text,
   View,
-  XStack,
   YStack
 } from "tamagui";
 
@@ -100,22 +99,6 @@ export default function Profile() {
               </YStack>
             </YStack>
           </Card>
-
-          {/* Stats Cards */}
-          <XStack gap="$4">
-            {/* Current Streak Card */}
-            <Card
-              elevate
-              size="$4"
-              bordered
-              bg="$background"
-              borderColor="$borderColor"
-              padding="$5"
-              flex={1}
-            >
-            </Card>
-
-          </XStack>
 
           {/* Account Section */}
           <Card
