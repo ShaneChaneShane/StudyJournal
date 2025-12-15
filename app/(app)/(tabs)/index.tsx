@@ -10,13 +10,99 @@ import { Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Card,
-  H1,
+  Image,
   ScrollView,
   Text,
   View,
   XStack,
-  YStack,
+  YStack
 } from "tamagui";
+
+
+type CalendarDay = {
+  date: Date;
+  isToday: boolean;
+  isCurrentMonth: boolean;
+  hasEntry: boolean; // mock
+};
+
+function sameLocalDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// Mock: pretend these local dates have entries
+function getMockLoggedDateKeys(now: Date) {
+  const keys = new Set<string>();
+  const mk = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+  // Example pattern: logged on a few days this week + a few random days in month
+  const d1 = new Date(now); d1.setDate(now.getDate());
+  const d2 = new Date(now); d2.setDate(now.getDate() - 1);
+  const d3 = new Date(now); d3.setDate(now.getDate() - 3);
+  const d4 = new Date(now); d4.setDate(5);
+  const d5 = new Date(now); d5.setDate(12);
+
+  [d1, d2, d3, d4, d5].forEach(d => keys.add(mk(d)));
+  return keys;
+}
+
+function monthGridDays(now: Date): CalendarDay[] {
+  const loggedKeys = getMockLoggedDateKeys(now);
+  const mk = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startDow = firstOfMonth.getDay(); // 0=Sun
+  const gridStart = new Date(year, month, 1 - startDow); // start at Sunday
+
+  const days: CalendarDay[] = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    days.push({
+      date: d,
+      isToday: sameLocalDay(d, now),
+      isCurrentMonth: d.getMonth() === month,
+      hasEntry: loggedKeys.has(mk(d)),
+    });
+  }
+  return days;
+}
+
+function weekStripDays(now: Date): CalendarDay[] {
+  const loggedKeys = getMockLoggedDateKeys(now);
+  const mk = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay()); // Sunday start (local)
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return {
+      date: d,
+      isToday: sameLocalDay(d, now),
+      isCurrentMonth: d.getMonth() === now.getMonth(),
+      hasEntry: loggedKeys.has(mk(d)),
+    };
+  });
+}
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -26,7 +112,7 @@ export default function HomeScreen() {
   const formattedDate = formatUppercaseDate(now);
   const greeting = getTimeOfDayGreeting();
   const userName = "Test";
-
+  const userImage = "https://i.pravatar.cc/111";
 
   const { data: monthlyAverages } = useMonthlySubjectAverages();
   const { currentStreak, longestStreak } = useStreaks();
@@ -46,55 +132,69 @@ export default function HomeScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} >
       <ScrollView
         px="$4"
         style={{ ...styles.content, paddingTop: insets.top }}
         contentContainerStyle={{ paddingBlockEnd: 24 }}
       >
         {/* Header */}
-        <YStack gap="$2" style={{ alignItems: "center" }} mt="$4">
-          <Logo />
-          <Text fontSize="$2" color="$color10" textTransform="uppercase" fontWeight="500">
-            {formattedDate}
-          </Text>
-        </YStack>
+        {/* Top header bar */}
+        <XStack style={{ alignItems: "center", justifyContent: "space-between" }} mt="$4" mb="$3">
+          <XStack gap="$3" style={{ alignItems: "center" }}>
+            <Logo/>
+            <YStack>
+              <Text fontSize="$2" color="$color10" textTransform="uppercase" fontWeight="600">
+                {formattedDate}
+              </Text>
+              <Text fontSize="$6" fontWeight="700" color="$color12">
+                {greeting}, {userName}
+              </Text>
+            </YStack>
+          </XStack>
 
-        {/* Greeting */}
-        <YStack gap="$2" style={{ alignItems: "center" }} mb="$4">
-          <H1 fontSize="$8" fontWeight="600" style={{ textAlign: "center" }} color="$color12">
-            {greeting}, {userName}!
-          </H1>
-        </YStack>
+          {/* Right side: small icon bubble (optional) */}
+          <Pressable onPress={() => router.push("/profile")} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
+            <Image source={{ uri: userImage }} style={styles.headerBadge}/>
+          </Pressable>
+        </XStack>
 
-        {/* Weekly Calendar Strip */}
+        {/* Week chips */}
         <XStack style={{ justifyContent: "space-between" }} mb="$6">
-          {Array.from({ length: 7 }, (_, i) => {
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay() + i);
-
-            const dayName = startOfWeek.toLocaleDateString("en-US", { weekday: "short" });
-            const dayNumber = startOfWeek.getDate();
-            const isToday = startOfWeek.toDateString() === now.toDateString();
+          {weekStripDays(now).map((day) => {
+            const dayName = day.date.toLocaleDateString("en-US", { weekday: "short" });
+            const dayNumber = day.date.getDate();
 
             return (
-              <YStack key={i} gap="$1" style={{ alignItems: "center" }}>
-                <Text fontSize="$2" color="$color10" fontWeight="500">
+              <YStack key={dayName + dayNumber} gap="$1" style={{ alignItems: "center" }}>
+                <Text fontSize="$2" color="$color10" fontWeight="600">
                   {dayName}
                 </Text>
-                <View style={[styles.dayCircle, isToday && styles.todayCircle]}>
+
+                <View style={[
+                  styles.dayCircle,
+                  day.isToday && styles.todayCircle,
+                  day.hasEntry && styles.loggedRing,
+                ]}>
                   <Text
                     fontSize="$3"
-                    color={isToday ? "white" : "$color11"}
-                    fontWeight={isToday ? "600" : "400"}
+                    color={day.isToday ? "white" : "$color11"}
+                    fontWeight={day.isToday ? "700" : "500"}
                   >
                     {dayNumber}
                   </Text>
                 </View>
+
+                {/* tiny dot */}
+                <View style={[styles.dot, { opacity: day.hasEntry ? 1 : 0 }]} />
               </YStack>
             );
           })}
         </XStack>
+
+
+
+
 
         {/* Dashboard */}
         <YStack gap="$3" mb="$6">
@@ -106,7 +206,7 @@ export default function HomeScreen() {
           <Card elevate bordered padding="$4" bg="white" borderColor="$borderColor">
             <XStack style={{ justifyContent: "space-between", alignItems: "center" }}>
               <YStack gap="$1">
-                <Text fontSize="$8" fontWeight="800" color={currentStreak>0? AppColors.primaryDark:AppColors.gray800}>
+                <Text fontSize="$8" fontWeight="800" color={currentStreak > 0 ? AppColors.primaryDark : AppColors.gray800}>
                   {currentStreak}
                   <Text fontSize="$5" fontWeight="700" color={AppColors.gray800}>
                     {" "}days
@@ -119,7 +219,7 @@ export default function HomeScreen() {
               </YStack>
 
               <View style={styles.streakIcon}>
-                <IconSymbol size={22} name="flame.fill" color={currentStreak>0 ? AppColors.flameRed:AppColors.gray300} />
+                <IconSymbol size={22} name="flame.fill" color={currentStreak > 0 ? AppColors.flameRed : AppColors.gray300} />
               </View>
             </XStack>
 
@@ -209,7 +309,7 @@ export default function HomeScreen() {
           </Pressable>
         </YStack>
       </ScrollView>
-    </View>
+    </View >
   );
 }
 
@@ -259,5 +359,26 @@ const styles = StyleSheet.create({
   barFill: {
     height: "100%",
     borderRadius: 999,
+  },
+  headerBadge: {
+    width: 45,
+    height: 45,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: AppColors.gray200,
+    backgroundColor: AppColors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: AppColors.primary,
+    marginTop: 2,
+  },
+  loggedRing: {
+    borderColor: AppColors.primary,
+    borderWidth: 2,
   },
 });
