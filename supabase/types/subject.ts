@@ -5,6 +5,7 @@ export type SubjectRow = {
     name: string;
     is_active: boolean;
     sort_order: number | null;
+    color: string;
 };
 
 export type SubjectAverageRow = {
