@@ -1,21 +1,21 @@
 import { defaultConfig } from "@tamagui/config/v4";
 import { createTamagui, createTokens } from "tamagui";
 
-// Create custom purple color tokens
+// Create custom orange color tokens
 const customTokens = createTokens({
   color: {
-    purple1: "#faf5ff",
-    purple2: "#f3e8ff",
-    purple3: "#e9d5ff",
-    purple4: "#d8b4fe",
-    purple5: "#c084fc",
-    purple6: "#a855f7",
-    purple7: "#9333ea",
-    purple8: "#7e22ce",
-    purple9: "#904BFF",
-    purple10: "#6b21a8",
-    purple11: "#581c87",
-    purple12: "#3b0764",
+    orange1: "#fffcf5",
+    orange2: "#fff7e8",
+    orange3: "#fdffd5",
+    orange4: "#fef9b4",
+    orange5: "#ffeb91",
+    orange6: "#ffee52",
+    orange7: "#f5be29",
+    orange8: "#ed8516",
+    orange9: "#e8632b",
+    orange10: "#a84e21",
+    orange11: "#a43d17",
+    orange12: "#7c2b00",
   },
   radius: defaultConfig.tokens.radius,
   zIndex: defaultConfig.tokens.zIndex,
@@ -31,21 +31,21 @@ const config = {
   tokens: customTokens,
   themes: {
     ...defaultConfig.themes,
-    // Create purple theme with same structure as blue
-    purple: {
+    // Create orange theme with same structure as blue
+    orange: {
       ...baseTheme,
-      background: "#904BFF",
-      backgroundHover: "#7e22ce",
-      backgroundPress: "#6b21a8",
-      backgroundFocus: "#904BFF",
+      background: "#ffab4b",
+      backgroundHover: "#ce5822",
+      backgroundPress: "#a84921",
+      backgroundFocus: "#ffbd4b",
       color: "#ffffff",
       colorHover: "#ffffff",
       colorPress: "#ffffff",
       colorFocus: "#ffffff",
-      borderColor: "#904BFF",
-      borderColorHover: "#7e22ce",
-      borderColorPress: "#6b21a8",
-      borderColorFocus: "#904BFF",
+      borderColor: "#ff934b",
+      borderColorHover: "#ce6422",
+      borderColorPress: "#a84521",
+      borderColorFocus: "#ff8a4b",
     },
   },
 };
@@ -57,5 +57,5 @@ export default tamaguiConfig;
 export type Conf = typeof tamaguiConfig;
 
 declare module "tamagui" {
-  interface TamaguiCustomConfig extends Conf {}
+  interface TamaguiCustomConfig extends Conf { }
 }
