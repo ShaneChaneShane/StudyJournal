@@ -1,42 +1,32 @@
 import { SignOutButton } from "@/components/SignOutButton";
 import { AppColors } from "@/constants/theme";
+import { getUserDisplayName } from "@/lib/utils/user";
+import { useUser } from "@clerk/clerk-expo";
 import { Image, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Card,
-  H1,
   H2,
   ScrollView,
+  Spinner,
   Text,
   View,
   YStack
 } from "tamagui";
 
 export default function Profile() {
-  // const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useUser();
   const insets = useSafeAreaInsets();
-  // const { currentStreak, longestStreak } = useStreaks();
+  const displayName = getUserDisplayName(user);
 
-  // if (!isLoaded) {
-  //   return (
-  //     <View style={styles.container}>
-  //       <View style={styles.loadingContainer}>
-  //         <Spinner size="large" />
-  //       </View>
-  //     </View>
-  //   );
-  // }
-
-  const initials = "testINIT";
-  // getUserInitials(user);
-  const displayName = "nameTEST";
-  // getUserDisplayName(user);
-  // mock user
-  const user = {
-    imageUrl: "https://i.pravatar.cc/111",
-    primaryEmailAddress: {
-      emailAddress: "john.doe@example.com",
-    },
+  if (!isLoaded) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Spinner size="large" />
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -53,11 +43,11 @@ export default function Profile() {
             elevate
             size="$4"
             bordered
-            bg="$background"
+            bg="$white1"
             borderColor="$borderColor"
             padding="$6"
           >
-            <YStack gap="$4" style={{ alignItems: "center" }}>
+            <YStack gap="$3" style={{ alignItems: "center" }}>
               {/* Profile Picture */}
               <View
                 style={{
@@ -70,27 +60,21 @@ export default function Profile() {
                   backgroundColor: "#e5e7eb",
                 }}
               >
-                {user?.imageUrl ? (
-                  <Image
-                    source={{ uri: user.imageUrl }}
-                    style={styles.profileImage}
-                  />
-                ) : (
-                  <Text fontSize={42} fontWeight="700" color="$color11">
-                    {initials}
-                  </Text>
-                )}
+                <Image
+                  source={{ uri: user?.imageUrl }}
+                  style={styles.profileImage}
+                />
               </View>
 
               {/* Name & Email */}
               <YStack style={{ alignItems: "center" }} gap="$2">
-                <H1
-                  fontSize={28}
+                <Text
+                  fontSize={23}
                   fontWeight="700"
                   style={{ textAlign: "center" }}
                 >
                   {displayName}
-                </H1>
+                </Text>
                 {user?.primaryEmailAddress?.emailAddress && (
                   <Text fontSize={14} color="$color10">
                     {user.primaryEmailAddress.emailAddress}
@@ -105,12 +89,12 @@ export default function Profile() {
             elevate
             size="$4"
             bordered
-            bg="$background"
+            bg="$white1"
             borderColor="$borderColor"
             padding="$5"
           >
-            <YStack gap="$4">
-              <YStack gap="$2">
+            <YStack gap="$2">
+              <YStack gap="$1">
                 <H2 fontSize={18} fontWeight="700" color="$color12">
                   Account
                 </H2>

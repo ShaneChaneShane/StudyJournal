@@ -5,13 +5,16 @@ import { useMonthlySubjectAverages } from "@/hooks/use-monthly-subject-averages"
 import { useStreaks } from "@/hooks/use-streaks";
 import { DEFAULT_SUBJECTS } from "@/lib/constants/subjects";
 import { formatUppercaseDate, getTimeOfDayGreeting } from "@/lib/utils/date";
+import { getUserFirstName } from "@/lib/utils/user";
+import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Card,
   Image,
   ScrollView,
+  Spinner,
   Text,
   View,
   XStack,
@@ -53,34 +56,6 @@ function getMockLoggedDateKeys(now: Date) {
   return keys;
 }
 
-function monthGridDays(now: Date): CalendarDay[] {
-  const loggedKeys = getMockLoggedDateKeys(now);
-  const mk = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate()
-    ).padStart(2, "0")}`;
-
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  const firstOfMonth = new Date(year, month, 1);
-  const startDow = firstOfMonth.getDay(); // 0=Sun
-  const gridStart = new Date(year, month, 1 - startDow); // start at Sunday
-
-  const days: CalendarDay[] = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    days.push({
-      date: d,
-      isToday: sameLocalDay(d, now),
-      isCurrentMonth: d.getMonth() === month,
-      hasEntry: loggedKeys.has(mk(d)),
-    });
-  }
-  return days;
-}
-
 function weekStripDays(now: Date): CalendarDay[] {
   const loggedKeys = getMockLoggedDateKeys(now);
   const mk = (d: Date) =>
@@ -105,17 +80,31 @@ function weekStripDays(now: Date): CalendarDay[] {
 
 
 export default function HomeScreen() {
+
+  const { user, isLoaded } = useUser();
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const now = new Date();
   const formattedDate = formatUppercaseDate(now);
   const greeting = getTimeOfDayGreeting();
-  const userName = "Test";
-  const userImage = "https://i.pravatar.cc/111";
+
+
+  const userName = getUserFirstName(user);
+  const userImage = user?.imageUrl;
 
   const { data: monthlyAverages } = useMonthlySubjectAverages();
   const { currentStreak, longestStreak } = useStreaks();
+  if (!isLoaded) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Spinner size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const avgMap = new Map(monthlyAverages.map((x) => [x.subjectId, x]));
 
@@ -142,20 +131,22 @@ export default function HomeScreen() {
         {/* Top header bar */}
         <XStack style={{ alignItems: "center", justifyContent: "space-between" }} mt="$4" mb="$3">
           <XStack gap="$3" style={{ alignItems: "center" }}>
-            <Logo/>
+            <Logo />
             <YStack>
               <Text fontSize="$2" color="$color10" textTransform="uppercase" fontWeight="600">
                 {formattedDate}
               </Text>
               <Text fontSize="$6" fontWeight="700" color="$color12">
-                {greeting}, {userName}
+                {
+                  userName ? `${greeting}, ${userName}` : greeting
+                }
               </Text>
             </YStack>
           </XStack>
 
           {/* Right side: small icon bubble (optional) */}
           <Pressable onPress={() => router.push("/profile")} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
-            <Image source={{ uri: userImage }} style={styles.headerBadge}/>
+            <Image source={{ uri: userImage }} style={styles.headerBadge} />
           </Pressable>
         </XStack>
 
@@ -315,6 +306,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppColors.white },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: { flex: 1 },
 
   dayCircle: {
