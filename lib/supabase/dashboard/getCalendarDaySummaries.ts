@@ -1,6 +1,6 @@
+import { CalendarDaySummary } from "@/lib/model/journalEntry";
 import { dayKeyLocal } from "@/lib/supabase/helper";
 import { listEntriesInRange } from "@/lib/supabase/journalEntry/listEntriesInRange";
-import { CalendarDaySummary } from "@/supabase/types/journalEntry";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**

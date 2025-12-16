@@ -1,7 +1,7 @@
 
+import { SubjectAverage } from "@/lib/model/subject";
 import { listEntriesInRange } from "@/lib/supabase/journalEntry/listEntriesInRange";
 import { listSubjects } from "@/lib/supabase/subject/listSubjects";
-import { SubjectAverageRow } from "@/supabase/types/subject";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function getSubjectAveragesInRange(
@@ -11,7 +11,7 @@ export async function getSubjectAveragesInRange(
         to: Date;
         includeInactiveSubjects?: boolean; // default false
     }
-): Promise<SubjectAverageRow[]> {
+): Promise<SubjectAverage[]> {
     const entries = await listEntriesInRange(supabase, {
         from: input.from,
         to: input.to,
@@ -37,7 +37,7 @@ export async function getSubjectAveragesInRange(
         }
     }
 
-    const out: SubjectAverageRow[] = [];
+    const out: SubjectAverage[] = [];
     for (const [subjectId, productivity_total] of sum.entries()) {
         const count = cnt.get(subjectId) ?? 0;
         out.push({ subjectId, count, avg: count ? productivity_total / count : 0 });

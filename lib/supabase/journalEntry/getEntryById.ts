@@ -1,11 +1,11 @@
 import { assertOk } from "@/lib/supabase/helper";
-import type { EntryWithSubjects, JournalEntryRow } from "@/supabase/types/journalEntry";
+import type { EntryWithSubjectsRow, JournalEntryRow } from "@/supabase/types/journalEntry";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function getEntryById(
     supabase: SupabaseClient,
     entryId: string
-): Promise<EntryWithSubjects | null> {
+): Promise<EntryWithSubjectsRow | null> {
     const entryRes = await supabase
         .from("journal_entries")
         .select("*")

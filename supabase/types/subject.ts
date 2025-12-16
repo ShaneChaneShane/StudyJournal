@@ -7,9 +7,3 @@ export type SubjectRow = {
     sort_order: number | null;
     color: string;
 };
-
-export type SubjectAverageRow = {
-    subjectId: string;
-    avg: number;   // 1..5
-    count: number; // number of entries included
-};

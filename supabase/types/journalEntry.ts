@@ -10,12 +10,6 @@ export type JournalEntryRow = {
     image_path: string | null;
 };
 
-export type EntryWithSubjects = JournalEntryRow & {
+export type EntryWithSubjectsRow = JournalEntryRow & {
     subjectIds: string[];
-};
-
-export type CalendarDaySummary = {
-    dateKey: string;       // YYYY-MM-DD local
-    entryCount: number;
-    avgProductivity: number; // 1..5
 };

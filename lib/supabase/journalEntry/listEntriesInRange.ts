@@ -1,5 +1,5 @@
 import { assertOk, uniq } from "@/lib/supabase/helper";
-import type { EntryWithSubjects, JournalEntryRow } from "@/supabase/types/journalEntry";
+import type { EntryWithSubjectsRow, JournalEntryRow } from "@/supabase/types/journalEntry";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function listEntriesInRange(
@@ -10,7 +10,7 @@ export async function listEntriesInRange(
         limit?: number;
         offset?: number;
     }
-): Promise<EntryWithSubjects[]> {
+): Promise<EntryWithSubjectsRow[]> {
     const { from, to, limit = 200, offset = 0 } = input;
 
     const entriesRes = await supabase

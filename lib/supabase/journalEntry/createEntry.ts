@@ -1,5 +1,5 @@
 import { assertOk, clampProductivity, uniq } from "@/lib/supabase/helper";
-import type { EntryWithSubjects, JournalEntryRow } from "@/supabase/types/journalEntry";
+import type { EntryWithSubjectsRow, JournalEntryRow } from "@/supabase/types/journalEntry";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 
@@ -14,7 +14,7 @@ export async function createEntry(
         subjectIds: string[];
         imagePath?: string | null; // optional, after upload
     }
-): Promise<EntryWithSubjects> {
+): Promise<EntryWithSubjectsRow> {
     const productivity = clampProductivity(input.productivity);
     const subjectIds = uniq(input.subjectIds).filter(Boolean);
 

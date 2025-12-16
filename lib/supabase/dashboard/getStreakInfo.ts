@@ -1,4 +1,4 @@
-import { StreakInfo } from "@/supabase/types/streak";
+import { StreakInfo } from "@/lib/model/streak";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dayKeyLocal } from "../helper";
 import { listEntriesInRange } from "../journalEntry/listEntriesInRange";
