@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import Logo from "@/components/Logo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -186,13 +186,6 @@ export default function HomeScreen() {
     };
   }, [isLoaded, userId]);
 
-
-
-  // initial load when isLoaded flips true
-  useEffect(() => {
-    const cleanup = loadDashboard();
-    return () => cleanup?.();
-  }, [loadDashboard]);
 
   // refresh every time screen gains focus (e.g. after router.back())
   useFocusEffect(
