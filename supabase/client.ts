@@ -41,3 +41,13 @@ export function getSupabaseWithClerk(
         },
     });
 }
+
+export function getSupabaseWithClerkJWT(clerkJwt: string) {
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: {
+            headers: {
+                Authorization: `Bearer ${clerkJwt}`,
+            },
+        },
+    });
+}

@@ -1,6 +1,11 @@
 import { AppColors } from "@/constants/theme";
-import { MaterialIcons } from "@expo/vector-icons";
-import React, { useRef, useState } from "react";
+import { generateAPIUrl } from "@/utils";
+import { useChat } from "@ai-sdk/react";
+import { useAuth } from "@clerk/clerk-expo";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { DefaultChatTransport } from "ai";
+import { fetch as expoFetch } from "expo/fetch";
+import React, { useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,112 +17,38 @@ import Markdown from "react-native-markdown-display";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Text, View, YStack } from "tamagui";
 
-type ChatRole = "user" | "assistant";
-
-type ChatPart =
-  | { type: "text"; text: string }
-  | { type: "tool-getUserJournalEntries" }
-  | { type: "tool-getAllUserJournalEntries" };
-
-type ChatMessage = {
-  id: string;
-  role: ChatRole;
-  parts: ChatPart[];
-  createdAt: number;
-};
-
-function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function mockAssistantReply(userText: string): ChatPart[] {
-  const t = userText.toLowerCase();
-
-  // A couple “tool-like” moments to show how it would look
-  if (t.includes("summary") || t.includes("summarize")) {
-    return [
-      { type: "tool-getUserJournalEntries" },
-      {
-        type: "text",
-        text:
-          "**Today’s summary (mock):**\n" +
-          "- You studied **Math** and **CS**\n" +
-          "- Productivity: **Focused**\n" +
-          "- Win: finished a tricky topic\n\n" +
-          "**Tomorrow (light plan):**\n" +
-          "1. Do 20 minutes of review\n" +
-          "2. One small practice set\n" +
-          "3. Write 2–3 lines reflection",
-      },
-    ];
-  }
-
-  if (t.includes("streak")) {
-    return [
-      { type: "tool-getAllUserJournalEntries" },
-      {
-        type: "text",
-        text:
-          "Nice — about streaks:\n" +
-          "- The goal is consistency, not perfection.\n" +
-          "- If you miss a day, restart without guilt.\n\n" +
-          "**Tip:** make your entry super small on busy days (2–3 lines).",
-      },
-    ];
-  }
-
-  if (t.includes("lazy") || t.includes("procrast")) {
-    return [
-      {
-        type: "text",
-        text:
-          "If today felt unproductive, try this (quick):\n" +
-          "- **2-minute start**: open notes + write one line\n" +
-          "- **25/5**: 25 min focus, 5 min break\n" +
-          "- Remove 1 distraction (phone out of reach)\n\n" +
-          "Want a plan for **one subject** you struggled with today?",
-      },
-    ];
-  }
-
-  // Default generic “study coach” response
-  return [
-    {
-      type: "text",
-      text:
-        "Got it. Here’s a simple reflection prompt:\n" +
-        "1) What did you study?\n" +
-        "2) What was hard?\n" +
-        "3) What’s one improvement for tomorrow?\n\n" +
-        "If you tell me your productivity rating (Very Low → Very Focused), I’ll tailor advice.",
-    },
-  ];
-}
-
 export default function AIChatScreen() {
   const [input, setInput] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
 
-  // Mock initial assistant message (optional)
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: uid(),
-      role: "assistant",
-      createdAt: Date.now(),
-      parts: [
-        {
-          type: "text",
-          text:
-            "Hi! I’m your **Study Coach** (mock).\n\n" +
-            "Try asking:\n" +
-            "- “Summarize today”\n" +
-            "- “I feel lazy, help”\n" +
-            "- “How do I keep my streak?”",
-        },
-      ],
-    },
-  ]);
+  const { getToken, userId, isSignedIn } = useAuth();
+
+  // Create transport once (but still can call getToken() inside body)
+  const transport = useMemo(() => {
+    return new DefaultChatTransport({
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      api: generateAPIUrl("/api/chat"), // <-- your route
+      body: async () => {
+        const clerkJwt = await getToken({ template: "supabase" });
+
+        return {
+          clerkJwt: clerkJwt ?? null,
+          // optional: can help debugging, but server should not trust this
+          userId: userId ?? null,
+        };
+      },
+    });
+
+  }, [getToken, userId]);
+
+  const { messages, error, sendMessage, status } = useChat({
+    transport,
+    onError: (e) => console.error("chat error:", e),
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -129,30 +60,26 @@ export default function AIChatScreen() {
     const text = input.trim();
     if (!text) return;
 
-    const userMsg: ChatMessage = {
-      id: uid(),
-      role: "user",
-      createdAt: Date.now(),
-      parts: [{ type: "text", text }],
-    };
+    if (!isSignedIn) {
+      // You can show a toast instead if you have one
+      console.warn("Not signed in");
+      return;
+    }
 
-    setMessages((prev) => [...prev, userMsg]);
+    sendMessage({ text });
     setInput("");
     scrollToBottom();
-
-    // Mock assistant response after a short delay
-    setTimeout(() => {
-      const assistantMsg: ChatMessage = {
-        id: uid(),
-        role: "assistant",
-        createdAt: Date.now(),
-        parts: mockAssistantReply(text),
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-      scrollToBottom();
-    }, 450);
   };
+
+  if (error) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.content}>
+          <Text color="$red10">{error.message}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -173,9 +100,10 @@ export default function AIChatScreen() {
               <YStack gap="$4" style={{ alignItems: "center" }} mt="$12">
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <MaterialIcons name="smart-toy" size={40} color="#666" />
+                    <MaterialCommunityIcons name="robot-excited" size={40} color="#666" />
                   </View>
                 </View>
+
                 <Text
                   fontSize="$6"
                   fontWeight="600"
@@ -184,6 +112,7 @@ export default function AIChatScreen() {
                 >
                   Start a conversation
                 </Text>
+
                 <Text
                   fontSize="$4"
                   color="$color9"
@@ -199,23 +128,19 @@ export default function AIChatScreen() {
                   key={m.id}
                   style={[
                     styles.messageContainer,
-                    m.role === "user"
-                      ? styles.userMessage
-                      : styles.assistantMessage,
+                    m.role === "user" ? styles.userMessage : styles.assistantMessage,
                   ]}
                 >
                   {m.role === "assistant" && (
                     <View style={styles.messageAvatar}>
-                      <MaterialIcons name="smart-toy" size={20} color="#666" />
+                      <MaterialCommunityIcons name="robot-excited" size={20} color="#666" />
                     </View>
                   )}
 
                   <View
                     style={[
                       styles.messageBubble,
-                      m.role === "user"
-                        ? styles.userBubble
-                        : styles.assistantBubble,
+                      m.role === "user" ? styles.userBubble : styles.assistantBubble,
                     ]}
                   >
                     {m.parts.map((part, i) => {
@@ -266,17 +191,17 @@ export default function AIChatScreen() {
                             <View key={`${m.id}-${i}`} style={styles.toolInvocation}>
                               <MaterialIcons name="search" size={14} color="#666" />
                               <Text fontSize="$2" color="$color9" ml="$2">
-                                Reviewing all entries (mock)...
+                                Reviewing all entries...
                               </Text>
                             </View>
                           );
 
-                        case "tool-getUserJournalEntries":
+                        case "tool-getUserJournalEntriesInRange":
                           return (
                             <View key={`${m.id}-${i}`} style={styles.toolInvocation}>
                               <MaterialIcons name="search" size={14} color="#666" />
                               <Text fontSize="$2" color="$color9" ml="$2">
-                                Looking through entries (mock)...
+                                Looking through entries in range...
                               </Text>
                             </View>
                           );
@@ -285,6 +210,13 @@ export default function AIChatScreen() {
                           return null;
                       }
                     })}
+                    {m.role === "assistant" && isLoading ? (
+                      <View style={{ marginTop: 8 }}>
+                        <Text fontSize="$2" color="$color9">
+                          Thinking...
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               ))
@@ -295,13 +227,13 @@ export default function AIChatScreen() {
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                placeholder="Type a message..."
+                placeholder={isSignedIn ? "Type a message..." : "Sign in to chat..."}
                 placeholderTextColor="#999"
                 value={input}
                 onChange={(e) => setInput(e.nativeEvent.text)}
                 onSubmitEditing={handleSend}
                 onKeyPress={(e) => {
-                  // CMD+Enter (Mac) or Ctrl+Enter (Windows/Linux) to send
+                  // CMD+Enter (Mac) or Ctrl+Enter (Windows/Linux) to send (web)
                   const nativeEvent = e.nativeEvent as {
                     key?: string;
                     metaKey?: boolean;
@@ -321,13 +253,15 @@ export default function AIChatScreen() {
                 maxLength={1000}
                 returnKeyType="send"
                 blurOnSubmit={Platform.OS !== "web"}
+                editable={!!isSignedIn && !isLoading}
               />
+
               <Button
                 size="$3"
-                bg={input.trim() ? "#904BFF" : "#cccccc"}
+                bg={input.trim() && isSignedIn && !isLoading ? "$orange8" : "#cccccc"}
                 color="white"
                 onPress={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || !isSignedIn || isLoading}
                 circular
                 style={styles.sendButton}
                 pressStyle={{ scale: 0.95 }}
