@@ -60,15 +60,15 @@ export default function EntryViewScreen({ entryId }: Props) {
                 .from("journal_entries")
                 .select(
                     `
-        id,
-        title,
-        content,
-        productivity,
-        image_path,
-        entry_timestamp,
-        created_at,
-        entry_subjects(subject_id)
-      `
+                        id,
+                        title,
+                        content,
+                        productivity,
+                        image_path,
+                        entry_timestamp,
+                        created_at,
+                        entry_subjects(subject_id)
+                     `
                 )
                 .eq("id", entryId)
                 .single();
@@ -206,7 +206,7 @@ export default function EntryViewScreen({ entryId }: Props) {
                                 name={productivityMeta.icon as any}
                                 color={productivityMeta.color}
                             />
-                            <Text style={styles.productivityText}>{productivityMeta.label}</Text>
+                            <Text style={[styles.productivityText, { "color": productivityMeta.color }]}>{productivityMeta.label}</Text>
                         </View>
                     </View>
                 </View>
