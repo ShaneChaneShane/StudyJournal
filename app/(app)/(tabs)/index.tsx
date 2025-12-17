@@ -14,9 +14,6 @@ import { Card, Image, ScrollView, Spinner, Text, View, XStack, YStack } from "ta
 
 import { getSupabaseWithClerk } from "@/supabase/client";
 
-import { getCalendarDaySummaries } from "@/lib/supabase/dashboard/getCalendarDaySummaries";
-import { getStreakInfo } from "@/lib/supabase/dashboard/getStreakInfo";
-import { getSubjectAveragesInRange } from "@/lib/supabase/dashboard/getSubjectAveragesInRange";
 
 import { mapSubject } from "@/lib/mapper/subject";
 import { listSubjects } from "@/lib/supabase/subject/listSubjects";
@@ -24,6 +21,8 @@ import { listSubjects } from "@/lib/supabase/subject/listSubjects";
 import type { CalendarDaySummary } from "@/lib/model/journalEntry";
 import type { StreakInfo } from "@/lib/model/streak";
 import type { Subject, SubjectAverage } from "@/lib/model/subject";
+import { computeMonthlyAverages, computeStreakInfo, computeWeekSummaries } from "@/lib/supabase/dashboard/dashboardCompute";
+import { listEntryMetaInRange } from "@/lib/supabase/journalEntry/listEntryMetaInRange";
 import { ensureDefaultSubjects } from "@/lib/supabase/subject/ensureDefaultSubjects";
 
 type CalendarDay = {
@@ -118,7 +117,6 @@ export default function HomeScreen() {
   const [monthlyAverages, setMonthlyAverages] = useState<SubjectAverage[]>([]);
   const [streak, setStreak] = useState<StreakInfo>({ currentStreak: 0, longestStreak: 0 });
   const [weekSummaries, setWeekSummaries] = useState<CalendarDaySummary[]>([]);
-
   const loadDashboard = useCallback(() => {
     if (!isLoaded) return;
 
@@ -131,28 +129,42 @@ export default function HomeScreen() {
       try {
         if (userId) await ensureDefaultSubjects(supabase, userId);
 
-        const subjectRows = await listSubjects(supabase);
-        const mappedSubjects = subjectRows.map(mapSubject);
+        // Fetch subjects + entry meta in parallel
+        const lookbackDays = 365;
 
+        const to = new Date();        // now
+        const from = new Date(to);
+        from.setDate(from.getDate() - lookbackDays);
+
+        const [subjectRows, entriesMeta] = await Promise.all([
+          listSubjects(supabase),
+          listEntryMetaInRange(supabase, {
+            from,
+            to: new Date(to.getTime() + 24 * 60 * 60 * 1000), // include today safely
+            includeSubjectIds: true,
+            limit: 5000,
+            offset: 0,
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        const mappedSubjects = subjectRows.map(mapSubject);
         const activeSubjects = mappedSubjects
           .filter((s) => s.isActive)
           .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
-        const streakInfo = await getStreakInfo(supabase, { lookbackDays: 365 });
+        const activeSubjectIds = subjectRows.filter((s) => s.is_active).map((s) => s.id);
 
+        // compute ranges
         const fromMonth = startOfMonth(now);
         const toMonth = endOfMonth(now);
-        const avgs = await getSubjectAveragesInRange(supabase, {
-          from: fromMonth,
-          to: toMonth,
-          includeInactiveSubjects: false,
-        });
-
         const { start: weekFrom, end: weekTo } = weekRangeSundayToSaturday(now);
-        const summaries = await getCalendarDaySummaries(supabase, {
-          from: weekFrom,
-          to: weekTo,
-        });
+
+        // compute everything in-memory (fast)
+        const streakInfo = computeStreakInfo(entriesMeta, new Date());
+        const avgs = computeMonthlyAverages(entriesMeta, fromMonth, toMonth, activeSubjectIds);
+        const summaries = computeWeekSummaries(entriesMeta, weekFrom, weekTo);
 
         if (cancelled) return;
 
@@ -169,11 +181,12 @@ export default function HomeScreen() {
       }
     })();
 
-    // cleanup for unmount / re-run
     return () => {
       cancelled = true;
     };
   }, [isLoaded, userId]);
+
+
 
   // initial load when isLoaded flips true
   useEffect(() => {
