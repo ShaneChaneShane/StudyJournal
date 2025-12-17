@@ -1,9 +1,41 @@
-# Welcome to your Expo app 👋
+More detail coming soon!
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Study journal
+This is a study journal app inspired by [sonny journal ai](https://github.com/sonnysangha/journal-ai-app-react-native-expo-sanity-clerk-billing-openai-vercel-ai-tamagui). This project is educational.
 
-## Get started
 
+🚧  Still under development.
+
+<b>Existed Features</b>
+- Write your study journal to record your academic journey.
+- Dashboard analyzing your productivity and counting streak to encourage you.
+- Use AI to reflect and further analyze your study habit, make planner for you, etc.
+
+
+<b>Preview</b>
+
+<p align="center">
+   <img src="https://github.com/user-attachments/assets/7b27e453-6139-4c8c-bf41-6836ebaace26" width=300>
+   <img src="https://github.com/user-attachments/assets/9cc437d6-7d8f-44b0-973e-9b619cd2d397" width=300>
+   <img src="https://github.com/user-attachments/assets/5b304e49-fa9f-41d5-8910-899e00fab9c7" width=300>
+</p>
+
+<b>Video Showcase</b>
+
+<p align="center">
+<img src="https://github.com/user-attachments/assets/bb983ddf-a17c-4bd9-892e-bb031c676a47" width=300>
+</p>
+
+
+<b>Future Features to be implemented</b>
+- customizable subjects! Right now there are fixed 5 subjects for demonstration.
+- calendar to visualize journal better (month/year calendar)
+- more dashboard analysis (graph, chart etc.)
+- store AI chat history
+
+
+## Set up
+-- more details soon ! --
 1. Install dependencies
 
    ```bash
@@ -13,38 +45,5 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Start the app
 
    ```bash
-   npx expo start
+   npx run start
    ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
