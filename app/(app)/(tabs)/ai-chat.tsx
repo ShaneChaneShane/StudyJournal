@@ -86,7 +86,7 @@ export default function AIChatScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={insets.top}
       >
         <View style={styles.content}>
           <ScrollView
@@ -95,6 +95,7 @@ export default function AIChatScreen() {
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={scrollToBottom}
+            keyboardShouldPersistTaps="handled"
           >
             {messages.length === 0 ? (
               <YStack gap="$4" style={{ alignItems: "center" }} mt="$12">
@@ -152,7 +153,7 @@ export default function AIChatScreen() {
                               style={{
                                 body: {
                                   color: m.role === "user" ? "white" : "#1f2937",
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   lineHeight: 22,
                                 },
                                 paragraph: {
@@ -231,29 +232,24 @@ export default function AIChatScreen() {
                 placeholderTextColor="#999"
                 value={input}
                 onChange={(e) => setInput(e.nativeEvent.text)}
-                onSubmitEditing={handleSend}
+                onSubmitEditing={() => {
+                  if (Platform.OS !== "web") handleSend();
+                }}
                 onKeyPress={(e) => {
-                  // CMD+Enter (Mac) or Ctrl+Enter (Windows/Linux) to send (web)
-                  const nativeEvent = e.nativeEvent as {
-                    key?: string;
-                    metaKey?: boolean;
-                    ctrlKey?: boolean;
-                  };
-                  if (
-                    nativeEvent.key === "Enter" &&
-                    (nativeEvent.metaKey || nativeEvent.ctrlKey)
-                  ) {
-                    // @ts-ignore preventDefault exists on web
+                  // Cmd/Ctrl+Enter to send on web
+                  if (Platform.OS !== "web") return;
+
+                  const ne = e.nativeEvent as { key?: string; metaKey?: boolean; ctrlKey?: boolean };
+                  if (ne.key === "Enter" && (ne.metaKey || ne.ctrlKey)) {
+                    // @ts-ignore web only
                     e.preventDefault?.();
                     handleSend();
                   }
                 }}
                 autoFocus={false}
-                multiline={Platform.OS === "web"}
+                multiline
                 maxLength={1000}
-                returnKeyType="send"
-                blurOnSubmit={Platform.OS !== "web"}
-                editable={!!isSignedIn && !isLoading}
+                returnKeyType={Platform.OS === "web" ? "default" : "send"}
               />
 
               <Button
@@ -357,11 +353,14 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
+    flexWrap: "wrap",
     color: "#000",
-    maxHeight: 100,
     paddingVertical: 8,
     lineHeight: 22,
+    textAlignVertical: "top",
+    minHeight: 36,
+    maxHeight: 200,
   },
   sendButton: {
     width: 36,
