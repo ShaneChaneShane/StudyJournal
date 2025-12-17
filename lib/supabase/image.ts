@@ -1,5 +1,5 @@
-import { assertOk } from "@/lib/supabase/helper";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import * as LegacyFS from "expo-file-system/legacy";
 
 export async function uploadEntryImage(
     supabase: SupabaseClient,
@@ -14,15 +14,16 @@ export async function uploadEntryImage(
 ) {
     const path = `${opts.clerkUserId}/${opts.entryId}/${opts.fileName}`;
 
-    const up = await supabase.storage
+    const { data, error } = await supabase.storage
         .from(opts.bucket)
         .upload(path, opts.data, {
             contentType: opts.contentType,
             upsert: true,
         });
+    if (error) throw error;
+    if (!data?.path) throw new Error("Upload succeeded but no path returned");
 
-    assertOk(up as any, "uploadEntryImage failed");
-    return path; // store this in journal_entries.image_path
+    return path;
 }
 
 export function getPublicImageUrl(
@@ -34,3 +35,42 @@ export function getPublicImageUrl(
     return data.publicUrl;
 }
 
+function guessContentType(uri: string): { contentType: string; ext: string } {
+    const clean = uri.split("?")[0];
+    const ext = (clean.split(".").pop() || "jpg").toLowerCase();
+
+    if (ext === "png") return { contentType: "image/png", ext: "png" };
+    if (ext === "webp") return { contentType: "image/webp", ext: "webp" };
+    if (ext === "heic") return { contentType: "image/heic", ext: "heic" };
+    return { contentType: "image/jpeg", ext: "jpg" };
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary = globalThis.atob
+        ? globalThis.atob(base64)
+        : Buffer.from(base64, "base64").toString("binary");
+
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+}
+
+export async function uriToArrayBuffer(uri: string): Promise<{
+    bytes: ArrayBuffer;
+    contentType: string;
+    fileName: string;
+}> {
+    const { contentType, ext } = guessContentType(uri);
+    const fileName = `photo-${Date.now()}.${ext}`;
+
+    const base64 = await LegacyFS.readAsStringAsync(uri, {
+        encoding: "base64",
+    });
+
+    return {
+        bytes: base64ToArrayBuffer(base64),
+        contentType,
+        fileName,
+    };
+}

@@ -4,31 +4,31 @@ export const PRODUCTIVITY_OPTIONS = [
   {
     icon: "psychology",
     label: "Very Focused",
-    value: "very-focused",
-    color: AppColors.productivityVeryFocused,
+    value: 5,
+    color: AppColors.productivityVeryFocused
   },
   {
     icon: "insights",
     label: "Focused",
-    value: "focused",
+    value: 4,
     color: AppColors.productivityFocused,
   },
   {
     icon: "horizontal-rule",
     label: "Okay",
-    value: "okay",
+    value: 3,
     color: AppColors.productivityOkay,
   },
   {
     icon: "trending-flat",
     label: "Low",
-    value: "low",
+    value: 2,
     color: AppColors.productivityLow,
   },
   {
     icon: "trending-down",
     label: "Very Low",
-    value: "very-low",
+    value: 1,
     color: AppColors.productivityVeryLow,
   },
 ] as const;
@@ -42,6 +42,6 @@ export const PRODUCTIVITY_CONFIG = PRODUCTIVITY_OPTIONS.reduce(
   {} as Record<string, (typeof PRODUCTIVITY_OPTIONS)[number]>
 );
 
-export const getProductivityConfig = (value: string) => {
-  return PRODUCTIVITY_CONFIG[value] || PRODUCTIVITY_CONFIG.okay;
+export const getProductivityConfig = (value: number) => {
+  return PRODUCTIVITY_CONFIG[value] || PRODUCTIVITY_CONFIG[3];
 };
