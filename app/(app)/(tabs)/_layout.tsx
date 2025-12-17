@@ -15,7 +15,7 @@ function PlusButton() {
       style={styles.plusButton}
     >
       <Pressable
-        onPress={() => router.push("/entry")}
+        onPress={() => router.push("/entry/new")}
         style={({ pressed }) => [
           { opacity: pressed ? 0.8 : 1 },
           styles.plusButtonInner,
