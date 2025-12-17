@@ -1,140 +1,162 @@
-import CreateEntryButton from "@/components/CreateEntryButton";
 import { AppColors } from "@/constants/theme";
 import { getProductivityConfig } from "@/lib/constants/productivity";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-// import { router } from "expo-router";
-import { getSubjectById } from "@/lib/constants/subjects";
-import { type ComponentProps } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { type ComponentProps, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "tamagui";
 
-// type JournalEntry = USER_JOURNAL_ENTRIES_QUERYResult[0];
+import { listEntriesInRange } from "@/lib/supabase/journalEntry/listEntriesInRange";
+import { listSubjects } from "@/lib/supabase/subject/listSubjects";
 
-// interface GroupedEntries {
-//   [date: string]: JournalEntry[];
-// }
+import { IMAGE_BUCKET } from "@/lib/constants/imageBucket";
+import { mapEntryWithSubject } from "@/lib/mapper/journalEntry";
+import { mapSubject } from "@/lib/mapper/subject";
+import { EntryWithSubjects } from "@/lib/model/journalEntry";
+import { getPublicImageUrl } from "@/lib/supabase/image";
+import { getSupabaseWithClerk } from "@/supabase/client";
+import { useAuth } from "@clerk/clerk-expo";
+
+
+type SubjectLike = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+type SubjectLookup = Record<string, { name: string; color: string }>;
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function toDate(x: EntryWithSubjects["createdAt"]) {
+  if (!x) return new Date();
+  return new Date(x);
+}
+
+// Group by local day key: YYYY-MM-DD
+function dayKeyLocal(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+type Grouped = { dateKey: string; entries: EntryWithSubjects[] };
+
+function groupEntriesByDay(entries: EntryWithSubjects[]): Grouped[] {
+  const groups: Record<string, EntryWithSubjects[]> = {};
+
+  for (const e of entries) {
+    const dt = toDate(e.entryTimestamp);
+    const key = dayKeyLocal(dt);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  }
+
+  const sortedDays = Object.keys(groups).sort((a, b) => {
+    // keys are YYYY-MM-DD => lexicographic works
+    return b.localeCompare(a);
+  });
+
+  return sortedDays.map((dateKey) => {
+    const dayEntries = groups[dateKey] ?? [];
+    dayEntries.sort((a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime());
+    return { dateKey, entries: dayEntries };
+  });
+}
+
+function extractPreview(entry: EntryWithSubjects) {
+  const text = entry.content;
+
+  if (typeof text !== "string" || text.trim().length === 0) {
+    return "No content";
+  }
+
+  return text.slice(0, 100);
+}
+
 
 export default function EntriesScreen() {
-  // const { user } = useUser();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  // const [entries, setEntries] = useState<USER_JOURNAL_ENTRIES_QUERYResult>([]);
-  // const [loading, setLoading] = useState(true);
-  // const [refreshing, setRefreshing] = useState(false);
+  const { getToken } = useAuth();
+  const supabase = getSupabaseWithClerk(getToken);
 
-  // const loadEntries = async () => {
-  //   if (!user?.id) return;
+  const [entries, setEntries] = useState<EntryWithSubjects[]>([]);
+  const [subjectLookup, setSubjectLookup] = useState<SubjectLookup>({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  //   try {
-  //     const fetchedEntries = await fetchJournalEntries(user.id);
-  //     setEntries(fetchedEntries);
-  //   } catch (error) {
-  //     console.error("Failed to load journal entries:", error);
-  //   } finally {
-  //     setLoading(false);
-  //     setRefreshing(false);
-  //   }
-  // };
+  const now = new Date();
+  const from = useMemo(() => startOfMonth(now), [now.getFullYear(), now.getMonth()]);
+  const to = useMemo(() => endOfMonth(now), [now.getFullYear(), now.getMonth()]);
 
-  // useEffect(() => {
-  //   loadEntries();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [user?.id]);
+  const load = async () => {
+    try {
+      const subjectRows = await listSubjects(supabase);
+      const mappedSubjects: SubjectLike[] = subjectRows.map(mapSubject);
 
-  // const onRefresh = () => {
-  //   setRefreshing(true);
-  //   loadEntries();
-  // };
+      const lookup: SubjectLookup = {};
+      for (const s of mappedSubjects) {
+        lookup[s.id] = { name: s.name, color: s.color };
+      }
+      setSubjectLookup(lookup);
 
-  // Group entries by date (using UTC to match Sanity timestamps)
-  // const groupEntriesByDate = (
-  //   entries: USER_JOURNAL_ENTRIES_QUERYResult
-  // ): GroupedEntries => {
-  //   return entries.reduce((groups: GroupedEntries, entry) => {
-  //     // Use UTC date components to match the date stored in Sanity
-  //     const dateObj = new Date(entry.createdAt ?? new Date());
-  //     const year = dateObj.getUTCFullYear();
-  //     const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
-  //     const day = String(dateObj.getUTCDate()).padStart(2, "0");
-  //     const dateKey = `${year}-${month}-${day}`;
+      const fetched = await listEntriesInRange(supabase, { from, to });
 
-  //     if (!groups[dateKey]) {
-  //       groups[dateKey] = [];
-  //     }
-  //     groups[dateKey].push(entry);
-  //     return groups;
-  //   }, {});
-  // };
+      setEntries((fetched.map(mapEntryWithSubject)) ?? []);
+    } catch (e) {
+      console.error("Failed to load entries:", e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [from.getTime(), to.getTime()]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    load();
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [])
+  );
+
+  const grouped = useMemo(() => groupEntriesByDay(entries), [entries]);
 
   const handleEntryPress = (entryId: string) => {
-    // router.push(`/entry/${entryId}`);
+    router.push(`/entry/${entryId}`);
   };
 
-  // if (loading) {
-  //   return (
-  //     <View style={styles.centerContainer}>
-  //       <ActivityIndicator size="large" color={AppColors.primary} />
-  //       <Text style={styles.loadingText}>Loading your journal entries...</Text>
-  //     </View>
-  //   );
-  // }
 
-  type MockEntry = {
-    _id: string;
-    title?: string;
-    createdAt: string;
-    productivity?: string;
-
-    // new: user-chosen subjects (final)
-    subjectIds?: string[];
-
-    // NEW: optional single image stored as array (first one used)
-    images?: { uri: string }[];
-
-    content?: {
-      _type: "block";
-      children?: { _type: "span"; text: string }[];
-    }[];
-  };
-
-  const entries: MockEntry[] = [
-    {
-      _id: "entry-1",
-      createdAt: "2025-03-10T08:30:00Z",
-      title: "Today lunch",
-      productivity: "very-focused",
-      subjectIds: ["math", "cs"],
-      images: [{ uri: "https://picsum.photos/200/200" }],
-      content: [
-        { _type: "block", children: [{ _type: "span", text: "Hello journal." }] },
-      ],
-    },
-    {
-      _id: "entry-2",
-      createdAt: "2025-03-10T15:45:00Z",
-      productivity: "okay",
-      subjectIds: ["chem"],
-      content: [
-        {
-          _type: "block",
-          children: [{ _type: "span", text: "Nothing special happened today." }],
-        },
-      ],
-    },
-    {
-      _id: "entry-3",
-      createdAt: "2025-03-09T22:10:00Z",
-      productivity: "low",
-      subjectIds: ["physics", "math", "other"],
-      content: [
-        {
-          _type: "block",
-          children: [{ _type: "span", text: "Feeling tired. Tomorrow better." }],
-        },
-      ],
-    },
-  ];
-
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={AppColors.primary} />
+        <Text style={styles.loadingText}>Loading your journal entries...</Text>
+      </View>
+    );
+  }
 
   if (entries.length === 0) {
     return (
@@ -143,66 +165,9 @@ export default function EntriesScreen() {
         <Text style={styles.emptySubtitle}>
           Tap the + button to write your first study journal entry!
         </Text>
-        <CreateEntryButton />
       </View>
     );
   }
-
-  // const groupedEntries = groupEntriesByDate(entries);
-
-  // Sort grouped entries by date (newest first)
-  // const sortedGroupedEntries = Object.entries(groupedEntries).sort(
-  //   ([dateA], [dateB]) => {
-  //     return new Date(dateB).getTime() - new Date(dateA).getTime();
-  //   }
-  // );
-
-  const sortedGroupedEntries: [string, MockEntry[]][] = [
-    [
-      "2025-03-10",
-      [
-        {
-          _id: "entry-1",
-          createdAt: "2025-03-10T08:30:00Z",
-          title: "Today's evening",
-          productivity: "very-focused",
-          subjectIds: ["math", "cs"],
-          images: [{ uri: "https://picsum.photos/200/200" }],
-          content: [
-            { _type: "block", children: [{ _type: "span", text: "Hello journal." }] },
-          ],
-        },
-        {
-          _id: "entry-2",
-          createdAt: "2025-03-10T15:45:00Z",
-          productivity: "okay",
-          subjectIds: ["chem"],
-          content: [
-            {
-              _type: "block",
-              children: [{ _type: "span", text: "Nothing special happened today." }],
-            },
-          ],
-        },
-
-      ],
-    ],
-    ["2025-03-09"
-      , [
-        {
-          _id: "entry-3",
-          createdAt: "2025-03-09T10:10:00Z",
-          productivity: "low",
-          subjectIds: ["physics", "math", "chem", "other"],
-          content: [
-            {
-              _type: "block",
-              children: [{ _type: "span", text: "Feeling tired. Tomorrow better." }],
-            },
-          ],
-        }],
-    ]
-  ];
 
   return (
     <View bg="$background" style={styles.container}>
@@ -213,67 +178,64 @@ export default function EntriesScreen() {
           { paddingTop: insets.top },
         ]}
         contentInsetAdjustmentBehavior="automatic"
-      // refreshControl={
-      //   <RefreshControl
-      //     refreshing={refreshing}
-      //     onRefresh={onRefresh}
-      //     progressBackgroundColor={AppColors.white}
-      //     progressViewOffset={0}
-      //   />
-      // }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressBackgroundColor={AppColors.white}
+            progressViewOffset={0}
+          />
+        }
       >
         <Text style={styles.title}>Your Study Journal</Text>
 
-        {sortedGroupedEntries.map(([date, dayEntries]) => {
-          // Sort entries within the day by createdAt (newest first)
-          const sortedDayEntries = [...dayEntries].sort(
-            (a, b) =>
-              new Date(b.createdAt ?? new Date()).getTime() -
-              new Date(a.createdAt ?? new Date()).getTime()
-          );
+        {grouped.map(({ dateKey, entries: dayEntries }) => {
+          // display date header in a nice format (local time)
+          const headerDate = new Date(`${dateKey}T00:00:00`);
+          const headerText = headerDate.toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
 
           return (
-            <View key={date} style={styles.dayGroup}>
-              <Text style={styles.dateHeader}>
-                {new Date(date + "T00:00:00Z").toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  timeZone: "UTC",
-                })}
-              </Text>
+            <View key={dateKey} style={styles.dayGroup}>
+              <Text style={styles.dateHeader}>{headerText}</Text>
 
-              {sortedDayEntries.map((entry) => {
-                const productivityConfig = getProductivityConfig(
-                  entry.productivity ?? "okay"
-                );
+              {dayEntries.map((entry) => {
+                const entryId = entry.id ?? "";
+                const dt = toDate(entry.createdAt);
 
-                const firstBlock = entry.content?.[0];
-                const preview =
-                  (firstBlock && "children" in firstBlock
-                    ? firstBlock.children?.[0]?.text?.slice(0, 100)
-                    : null) ?? "No content";
-                const thumbnailUri = entry.images?.[0]?.uri ?? null;
+                const productivityConfig = getProductivityConfig(entry.productivity);
+                const preview = extractPreview(entry);
+                const imagePath = entry.imagePath;
 
+                const thumbnailUri = imagePath
+                  ? getPublicImageUrl(supabase, IMAGE_BUCKET, imagePath)
+                  : null;
                 const ids = entry.subjectIds ?? [];
-                const uniqueIds = Array.from(new Set(ids));
+                const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
 
                 const maxShow = 3;
                 const shown = uniqueIds.slice(0, maxShow);
                 const extraCount = uniqueIds.length - shown.length;
 
+                const title =
+                  entry.title ??
+                  dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
                 return (
-                  <View key={entry._id} style={styles.entryCardContainer}>
+                  <View key={entryId || String(dt.getTime())} style={styles.entryCardContainer}>
                     <View style={styles.subjectPillsRow}>
                       {shown.map((id) => {
-                        const subject = getSubjectById(id);
-                        const title = subject?.title ?? "Unknown";
+                        const subject = subjectLookup[id];
+                        const name = subject?.name ?? "Unknown";
                         const color = subject?.color ?? "#6b7280";
 
                         return (
                           <View key={id} style={[styles.subjectPill, { backgroundColor: color }]}>
-                            <Text style={styles.subjectPillText}>{title}</Text>
+                            <Text style={styles.subjectPillText}>{name}</Text>
                           </View>
                         );
                       })}
@@ -287,29 +249,17 @@ export default function EntriesScreen() {
 
                     <TouchableOpacity
                       style={styles.entryCard}
-                      onPress={() => handleEntryPress(entry._id)}
+                      onPress={() => entryId && handleEntryPress(entryId)}
+                      disabled={!entryId}
                     >
                       <View style={styles.entryHeader}>
-                        <Text style={styles.entryTitle}>
-                          {
-                            entry.title ??
-                            new Date(entry.createdAt ?? new Date()).toLocaleTimeString(
-                              "en-US",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )
-                          }
-                        </Text>
+                        <Text style={styles.entryTitle}>{title}</Text>
 
                         <View style={styles.entryActions}>
                           <MaterialIcons
                             size={20}
                             name={
-                              productivityConfig.icon as ComponentProps<
-                                typeof MaterialIcons
-                              >["name"]
+                              productivityConfig.icon as ComponentProps<typeof MaterialIcons>["name"]
                             }
                             color={productivityConfig.color}
                           />
@@ -323,17 +273,16 @@ export default function EntriesScreen() {
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.entryBodyRow}>
 
+                      <View style={styles.entryBodyRow}>
                         <Text style={[styles.entryPreview, { flex: 1, marginBottom: 0 }]}>
                           {preview}
                           {preview.length >= 100 ? "..." : ""}
                         </Text>
 
-                        {thumbnailUri && (
+                        {thumbnailUri ? (
                           <Image source={{ uri: thumbnailUri }} style={styles.entryThumbnail} />
-                        )}
-
+                        ) : null}
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -444,64 +393,40 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     marginBottom: 16,
   },
-  categoryTag: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: AppColors.white,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
   subjectPillsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-
   subjectPill: {
-    // justifyContent: "center",
-    // alignItems: "center",
     paddingInline: 10,
     paddingBottom: 3,
     paddingTop: 3,
     borderRadius: 999,
   },
-
   subjectPillText: {
     fontSize: 11,
     fontWeight: "700",
     color: "white",
-
   },
-
   subjectPillMuted: {
     backgroundColor: "#e5e7eb",
   },
-
   subjectPillTextMuted: {
     fontSize: 11,
     fontWeight: "700",
     color: "#374151",
   },
-
   entryBodyRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     marginBottom: 16,
   },
-
   entryThumbnail: {
     width: 65,
     height: 65,
     borderRadius: 12,
     backgroundColor: AppColors.gray100,
   },
-
-
 });

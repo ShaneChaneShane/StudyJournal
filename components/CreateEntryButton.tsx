@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export default function CreateEntryButton() {
   const handlePress = () => {
-    router.push("/new-entry");
+    router.push("/entry/new");
   };
 
   return (

@@ -15,7 +15,7 @@ function PlusButton() {
       style={styles.plusButton}
     >
       <Pressable
-        onPress={() => router.push("/new-entry")}
+        onPress={() => router.push("/entry")}
         style={({ pressed }) => [
           { opacity: pressed ? 0.8 : 1 },
           styles.plusButtonInner,
@@ -80,7 +80,7 @@ export default function TabLayout() {
         options={{
           title: "AI Chat",
           tabBarIcon: ({ color }) => (
-          <IconSymbol size={25} name="bubble.fill" color={color} />
+            <IconSymbol size={25} name="bubble.fill" color={color} />
           ),
         }}
       />
