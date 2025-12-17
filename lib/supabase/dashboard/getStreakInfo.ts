@@ -52,9 +52,14 @@ export async function getStreakInfo(
         }
     }
 
-    // current streak (ending yesterday)
-    const anchor = new Date();
-    anchor.setDate(anchor.getDate() - 1);
+    const today = new Date();
+    const todayKey = dayKeyLocal(today);
+
+    // the streak ends today or yesterday
+    const anchor = new Date(today);
+    if (!daySet.has(todayKey)) {
+        anchor.setDate(anchor.getDate() - 1);
+    }
 
     let current = 0;
 
@@ -66,6 +71,7 @@ export async function getStreakInfo(
         if (daySet.has(k)) current += 1;
         else break;
     }
+
 
 
     return { currentStreak: current, longestStreak: longest };

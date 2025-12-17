@@ -9,7 +9,7 @@ export type JournalEntry = {
     imagePath: string | null;
 };
 
-export type EntryWithSubject = JournalEntry & {
+export type EntryWithSubjects = JournalEntry & {
     subjectIds: string[];
 };
 

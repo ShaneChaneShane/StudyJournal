@@ -10,13 +10,14 @@ export async function setEntrySubjects(
 
     // simplest: delete old, insert new
     const del = await supabase.from("entry_subjects").delete().eq("entry_id", entryId);
-    assertOk(del as any, "setEntrySubjects delete failed");
-
+    if (del.error) throw new Error("setEntrySubjects delete failed");
+    console.log(del)
     if (unique.length === 0) return;
 
     const ins = await supabase
         .from("entry_subjects")
-        .insert(unique.map((sid) => ({ entry_id: entryId, subject_id: sid })));
+        .insert(unique.map((sid) => ({ entry_id: entryId, subject_id: sid })))
+        .select("entry_id, subject_id");
 
     assertOk(ins as any, "setEntrySubjects insert failed");
 }

@@ -17,7 +17,8 @@ export async function ensureDefaultSubjects(
 
     const rows = DEFAULT_SUBJECTS.map((subject, i) => ({
         user_id: clerkUserId,
-        subject,
+        name: subject.name,
+        color: subject.color,
         is_active: true,
         sort_order: i + 1,
     }));

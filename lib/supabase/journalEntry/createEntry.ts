@@ -38,7 +38,10 @@ export async function createEntry(
             entry_id: entry.id,
             subject_id: sid,
         }));
-        const joinRes = await supabase.from("entry_subjects").insert(joinRows);
+        const joinRes = await supabase
+            .from("entry_subjects")
+            .insert(joinRows)
+            .select("entry_id, subject_id");
         assertOk(joinRes as any, "createEntry entry_subjects insert failed");
     }
 
