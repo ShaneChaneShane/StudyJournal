@@ -358,7 +358,7 @@ export default function HomeScreen() {
                 {
                   subjectRows.length === 0 ?
                     <Text fontSize="$2" color="$color10">
-                      Start writing now to start this month productivity analysis!
+                      loading subjects...
                     </Text> : null
                 }
                 {subjectRows.map((row) => {

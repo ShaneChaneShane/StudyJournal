@@ -25,6 +25,7 @@ import { mapSubject } from "@/lib/mapper/subject";
 import { Subject } from "@/lib/model/subject";
 import { uploadEntryImage, uriToArrayBuffer } from "@/lib/supabase/image";
 import { createEntry } from "@/lib/supabase/journalEntry/createEntry";
+import { deleteEntry } from "@/lib/supabase/journalEntry/deleteEntry";
 import { setEntrySubjects } from "@/lib/supabase/journalEntry/setEntrySubjects";
 import { updateEntry } from "@/lib/supabase/journalEntry/updateEntry";
 import { listSubjects } from "@/lib/supabase/subject/listSubjects";
@@ -47,21 +48,22 @@ export default function EntryEditorScreen(props: Props) {
     const isEdit = props.mode === "edit";
     const entryId = isEdit ? props.entryId : null;
 
-    // ---- Form state (safe defaults) ----
+    // Form state
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [productivity, setProductivity] = useState(3);
     const [subjectIds, setSubjectIds] = useState<string[]>([]);
 
     // UI image preview uri:
-    // - create mode: local file:// uri if picked
-    // - edit mode: public URL (if bucket is public) OR local file:// when replaced
+    // create mode: local file:// uri if picked
+    // edit mode: public URL (if bucket is public) OR local file:// when replaced
     const [imageUri, setImageUri] = useState<string | null>(null);
 
     // original storage path (edit mode)
     const [originalImagePath, setOriginalImagePath] = useState<string | null>(null);
 
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     // Subjects chips
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -73,13 +75,13 @@ export default function EntryEditorScreen(props: Props) {
     // Prevent late load overwriting user typing
     const [hydrated, setHydrated] = useState(false);
 
-    // ---- Guard: edit route must have entryId ----
+    // edit route must have entryId
     useEffect(() => {
         if (!isLoaded) return;
         if (isEdit && !entryId) router.back();
     }, [isLoaded, isEdit, entryId, router]);
 
-    // ---- Prefill for CREATE mode (promptTitle/promptText) ----
+    // prefill for CREATE mode
     useEffect(() => {
         if (!isLoaded) return;
         if (isEdit) return;
@@ -315,6 +317,40 @@ export default function EntryEditorScreen(props: Props) {
         }
     };
 
+    const onPressDelete = () => {
+        if (!isEdit || !entryId) return;
+
+        Alert.alert(
+            "Delete entry?",
+            "This will permanently delete this entry.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        if (!userId) {
+                            Alert.alert("Error", "User not authenticated.");
+                            return;
+                        }
+
+                        try {
+                            setDeleting(true);
+                            await deleteEntry(supabase, entryId); // handles DB + storage
+                            Alert.alert("Deleted", "Entry has been deleted.");
+                            router.back();
+                        } catch (e) {
+                            console.error("deleteEntry failed:", e);
+                            Alert.alert("Error", "Failed to delete entry.");
+                        } finally {
+                            setDeleting(false);
+                            router.push("/entries");
+                        }
+                    },
+                },
+            ]
+        );
+    };
     const headerTitle = isEdit ? "Edit Entry" : "New Entry";
 
     return (
@@ -331,7 +367,7 @@ export default function EntryEditorScreen(props: Props) {
                     <TouchableOpacity
                         onPress={onPressSave}
                         style={[styles.headerBtn, (saving || initialLoading) && { opacity: 0.6 }]}
-                        disabled={saving || initialLoading}
+                        disabled={saving || initialLoading || deleting}
                     >
                         <Text style={styles.headerBtnText}>
                             {saving ? (isEdit ? "Updating..." : "Saving...") : isEdit ? "Update" : "Save"}
@@ -454,6 +490,16 @@ export default function EntryEditorScreen(props: Props) {
                                 </Text>
                             </TouchableOpacity>
 
+                            {isEdit ? (
+                                <TouchableOpacity
+                                    onPress={onPressDelete}
+                                    style={[styles.dangerBtn, (saving || deleting || initialLoading) && { opacity: 0.7 }]}
+                                    disabled={saving || deleting || initialLoading}
+                                >
+                                    <Text style={styles.dangerBtnText}>{deleting ? "Deleting..." : "Delete Entry"}</Text>
+                                </TouchableOpacity>
+                            ) : null}
+
                         </View>}
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -558,4 +604,20 @@ const styles = StyleSheet.create({
 
     primaryBtn: { marginTop: 10, borderRadius: 14, paddingVertical: 14, alignItems: "center", backgroundColor: "#111827" },
     primaryBtnText: { color: "#ffffff", fontWeight: "800", fontSize: 14 },
+
+    dangerBtn: {
+        marginTop: 10,
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#ef4444",
+        backgroundColor: "#ffffff",
+    },
+    dangerBtnText: {
+        color: "#ef4444",
+        fontWeight: "800",
+        fontSize: 14,
+    },
+
 });
